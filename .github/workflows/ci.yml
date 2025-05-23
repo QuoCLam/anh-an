@@ -11,19 +11,23 @@ jobs:
   lint-test:
     name: Lint & Test Services
     runs-on: ubuntu-latest
+
     strategy:
       matrix:
         service: [orders, notification, scheduler]
 
     steps:
+      # 1. Checkout code
       - name: 📥 Checkout repository
         uses: actions/checkout@v3
 
+      # 2. Setup Python
       - name: 🔧 Setup Python 3.10
         uses: actions/setup-python@v4
         with:
           python-version: '3.10'
 
+      # 3. Cache pip dependencies
       - name: 💾 Cache pip
         uses: actions/cache@v3
         with:
@@ -32,24 +36,28 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pip-
 
+      # 4. Install lint/test & stub packages + service deps
       - name: 📦 Install dependencies for ${{ matrix.service }}
         run: |
           python -m pip install --upgrade pip
-          pip install flake8 mypy pytest pytest-asyncio
+          # Lint / test tools + stub cho requests
+          pip install flake8 mypy pytest pytest-asyncio types-requests
+          # Cài thêm các package runtime của service
           if [ -f services/${{ matrix.service }}/requirements.txt ]; then
             pip install -r services/${{ matrix.service }}/requirements.txt
           fi
 
+      # 5. Lint với flake8
       - name: 📝 Lint ${{ matrix.service }}
         run: flake8 services/${{ matrix.service }}
 
+      # 6. Type check với MyPy (bỏ qua thiếu stub)
       - name: 🔍 Type check ${{ matrix.service }}
         run: |
           mypy \
             --ignore-missing-imports \
             services/${{ matrix.service }}
 
-
-
+      # 7. Chạy tests với pytest
       - name: ✅ Test ${{ matrix.service }}
         run: pytest services/${{ matrix.service }} --maxfail=1 --disable-warnings -q
