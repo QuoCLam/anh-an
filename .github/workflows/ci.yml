@@ -45,7 +45,10 @@ jobs:
 
       - name: 🔍 Type check ${{ matrix.service }}
         run: |
-          mypy --ignore-missing-imports services/${{ matrix.service }}
+          mypy \
+            --ignore-missing-imports \
+            services/${{ matrix.service }}
+
 
 
       - name: ✅ Test ${{ matrix.service }}
