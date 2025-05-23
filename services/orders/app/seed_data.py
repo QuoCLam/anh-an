@@ -6,9 +6,9 @@ from app.database import SessionLocal            # hàm tạo session đã có s
 from app import models                           # đã khai báo models.Order
 
 SAMPLE_ORDERS = [
-    {"customer_name": "Alice", "item": "Cà phê",  "quantity": 2, "status": "pending"},
-    {"customer_name": "Bob",   "item": "Trà sữa", "quantity": 1, "status": "pending"},
-    {"customer_name": "Chris", "item": "Latte",   "quantity": 3, "status": "done"},
+    {"customer_name": "Alice", "item": "Cà phê", "quantity": 2, "status": "pending"},
+    {"customer_name": "Bob", "item": "Trà sữa", "quantity": 1, "status": "pending"},
+    {"customer_name": "Chris", "item": "Latte", "quantity": 3, "status": "done"},
 ]
 
 

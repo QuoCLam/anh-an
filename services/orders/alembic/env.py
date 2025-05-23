@@ -1,3 +1,4 @@
+from app.models import Base
 import sys
 import os
 from logging.config import fileConfig
@@ -22,13 +23,15 @@ if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 # Import Base từ models
-from app.models import Base
 
 target_metadata = Base.metadata
 
 # Đọc DATABASE_URL từ biến môi trường hoặc alembic.ini
+
+
 def get_url():
     return os.getenv("DATABASE_URL", config.get_main_option("sqlalchemy.url"))
+
 
 def run_migrations_offline():
     url = get_url()
@@ -42,6 +45,7 @@ def run_migrations_offline():
 
     with context.begin_transaction():
         context.run_migrations()
+
 
 def run_migrations_online():
     connectable = engine_from_config(
@@ -60,6 +64,7 @@ def run_migrations_online():
 
         with context.begin_transaction():
             context.run_migrations()
+
 
 if context.is_offline_mode():
     run_migrations_offline()

@@ -3,6 +3,7 @@ from sqlalchemy.orm import relationship
 from datetime import datetime
 from .database import Base
 
+
 class Order(Base):
     __tablename__ = "orders"
     id = Column(Integer, primary_key=True, index=True)
@@ -12,9 +13,16 @@ class Order(Base):
     note = Column(String, default="")
     status = Column(String, default="pending_confirm")
     created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    items = relationship("OrderItem", back_populates="order", cascade="all, delete")
+    updated_at = Column(
+        DateTime,
+        default=datetime.utcnow,
+        onupdate=datetime.utcnow)
+    items = relationship(
+        "OrderItem",
+        back_populates="order",
+        cascade="all, delete")
     tasks = relationship("Task", back_populates="order", cascade="all, delete")
+
 
 class OrderItem(Base):
     __tablename__ = "order_items"
@@ -25,12 +33,17 @@ class OrderItem(Base):
     unit = Column(String, nullable=False)
     order = relationship("Order", back_populates="items")
 
+
 class Task(Base):
     __tablename__ = "tasks"
     id = Column(Integer, primary_key=True, index=True)
     order_id = Column(Integer, ForeignKey("orders.id"))
-    type = Column(String, nullable=False)  # 'Thiết kế', 'Đăng ký công bố', 'Thí nghiệm', 'Thu mua'
+    # 'Thiết kế', 'Đăng ký công bố', 'Thí nghiệm', 'Thu mua'
+    type = Column(String, nullable=False)
     status = Column(String, default="pending")  # 'pending', 'done', 'canceled'
     created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    updated_at = Column(
+        DateTime,
+        default=datetime.utcnow,
+        onupdate=datetime.utcnow)
     order = relationship("Order", back_populates="tasks")

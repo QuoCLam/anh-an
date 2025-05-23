@@ -3,6 +3,7 @@ from app import crud, schemas, database
 
 router = APIRouter(prefix="/sample-tasks")
 
+
 @router.get("/", response_model=list[schemas.SampleTask])
 def list_tasks(reminder_date: str):
     try:

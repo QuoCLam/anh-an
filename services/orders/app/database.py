@@ -1,5 +1,6 @@
 # app/database.py
-# Cấu hình kết nối database cho Orders service, sử dụng biến môi trường trong .env
+# Cấu hình kết nối database cho Orders service, sử dụng biến môi trường
+# trong .env
 
 import os
 from pathlib import Path
@@ -24,6 +25,7 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
 # 5. Dependency để lấy phiên làm việc với DB
+
 
 def get_db():
     db = SessionLocal()

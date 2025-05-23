@@ -12,8 +12,13 @@ from app import crud, database, schemas
 router = APIRouter()
 
 # ----------------- POST /orders/ -----------------
+
+
 @router.post("/", response_model=schemas.Order, status_code=201)
-def create_order(order: schemas.OrderCreate, db: Session = Depends(database.get_db)) -> schemas.Order:
+def create_order(
+    order: schemas.OrderCreate,
+    db: Session = Depends(
+        database.get_db)) -> schemas.Order:
     """
     Tạo mới một đơn hàng cùng danh sách sản phẩm (items), sau đó sinh notification
     cho 4 phòng ban: Thiết kế, Đăng ký công bố, Thí nghiệm, Thu mua.
@@ -24,10 +29,10 @@ def create_order(order: schemas.OrderCreate, db: Session = Depends(database.get_
 
         # 2. Sinh notification cho 4 phòng ban
         initial_depts = [
-            ("Thiết kế",         "Chờ xác nhận thiết kế"),
-            ("Đăng ký công bố",  "Chờ xác nhận đăng ký công bố"),
-            ("Thí nghiệm",       "Chờ xác nhận thí nghiệm"),
-            ("Thu mua",          "Chờ xác nhận thu mua"),
+            ("Thiết kế", "Chờ xác nhận thiết kế"),
+            ("Đăng ký công bố", "Chờ xác nhận đăng ký công bố"),
+            ("Thí nghiệm", "Chờ xác nhận thí nghiệm"),
+            ("Thu mua", "Chờ xác nhận thu mua"),
         ]
         for dept, label in initial_depts:
             notif_in = schemas.NotificationCreate(
