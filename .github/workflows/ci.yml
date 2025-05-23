@@ -15,26 +15,22 @@ jobs:
         service: [orders, notification, scheduler]
 
     steps:
-      # 1. Checkout code
       - name: 📥 Checkout repository
         uses: actions/checkout@v3
 
-      # 2. Setup Python
       - name: 🔧 Setup Python 3.10
         uses: actions/setup-python@v4
         with:
           python-version: '3.10'
 
-      # 3. Cache pip deps
       - name: 💾 Cache pip
         uses: actions/cache@v3
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles(matrix.service == 'scheduler' && 'scheduler/requirements.txt' || 'services/' + matrix.service + '/requirements.txt') }}
+          key: ${{ runner.os }}-pip-${{ matrix.service }}-${{ hashFiles('**/requirements.txt') }}
           restore-keys: |
-            ${{ runner.os }}-pip-
+            ${{ runner.os }}-pip-${{ matrix.service }}-
 
-      # 4. Install all the tools + service deps
       - name: 📦 Install dependencies for ${{ matrix.service }}
         run: |
           python -m pip install --upgrade pip
@@ -42,10 +38,9 @@ jobs:
           if [ "${{ matrix.service }}" = "scheduler" ]; then
             pip install -r scheduler/requirements.txt
           else
-            pip install -r ${matrix.service}/requirements.txt
+            pip install -r ${{ matrix.service }}/requirements.txt
           fi
 
-      # 5. Auto-format only the code folder
       - name: 🛠️ Auto-format code
         run: |
           if [ "${{ matrix.service }}" = "scheduler" ]; then
@@ -54,7 +49,6 @@ jobs:
             autopep8 --in-place --aggressive --aggressive --recursive ${{ matrix.service }}/app
           fi
 
-      # 6. Lint only the code folder
       - name: 📝 Lint code
         run: |
           if [ "${{ matrix.service }}" = "scheduler" ]; then
@@ -63,12 +57,8 @@ jobs:
             flake8 ${{ matrix.service }}/app
           fi
 
-      # 7. Type-check with MyPy
-      - name: 🔍 Type check
-        run: |
-          mypy --ignore-missing-imports ${{ matrix.service }}
+      - name: 🔍 Type check with MyPy
+        run: mypy --ignore-missing-imports ${{ matrix.service }}
 
-      # 8. Run tests with pytest
       - name: ✅ Test with pytest
-        run: |
-          pytest ${{ matrix.service }} --maxfail=1 --disable-warnings -q
+        run: pytest ${{ matrix.service }} --maxfail=1 --disable-warnings -q
