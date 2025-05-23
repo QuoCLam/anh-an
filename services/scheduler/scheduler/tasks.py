@@ -1,11 +1,10 @@
 import os
 import logging
-import requests
-from celery import shared_task
+import requests  # type: ignore[import-untyped]
+from celery import shared_task  # type: ignore[import-untyped]
 
 # Initialize logger
 t_logger = logging.getLogger(__name__)
-
 # Service endpoints
 ORDERS_API = os.getenv(
     "ORDERS_SERVICE_URL",
