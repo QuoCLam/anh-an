@@ -55,9 +55,9 @@ jobs:
       - name: 📝 Lint code
         run: |
           if [ "${{ matrix.service }}" = "scheduler" ]; then
-            flake8 services/scheduler/scheduler
+            flake8 --config .flake8 services/scheduler/scheduler
           else
-            flake8 services/${{ matrix.service }}/app
+            flake8 --config .flake8 services/${{ matrix.service }}/app
           fi
 
       # 7. Type-check với MyPy
