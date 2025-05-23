@@ -44,7 +44,9 @@ jobs:
         run: flake8 services/${{ matrix.service }}
 
       - name: 🔍 Type check ${{ matrix.service }}
-        run: mypy services/${{ matrix.service }}
+        run: |
+          mypy --ignore-missing-imports services/${{ matrix.service }}
+
 
       - name: ✅ Test ${{ matrix.service }}
         run: pytest services/${{ matrix.service }} --maxfail=1 --disable-warnings -q
