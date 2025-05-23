@@ -1,5 +1,3 @@
-# services/scheduler/tests/test_placeholder.py
-
 def test_placeholder():
-    # Một test đơn giản để pytest không bị báo "no tests run"
+    # Đảm bảo pytest không báo "no tests ran"
     assert True
