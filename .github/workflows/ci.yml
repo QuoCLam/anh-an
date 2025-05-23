@@ -10,55 +10,60 @@ on:
 jobs:
   lint-test:
     runs-on: ubuntu-latest
+
     strategy:
       matrix:
         service: [orders, notification, scheduler]
 
     steps:
+      # 1. Checkout code
       - name: 📥 Checkout repository
         uses: actions/checkout@v3
 
+      # 2. Setup Python
       - name: 🔧 Setup Python 3.10
         uses: actions/setup-python@v4
         with:
           python-version: '3.10'
 
+      # 3. Cache pip dependencies per service
       - name: 💾 Cache pip
         uses: actions/cache@v3
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ matrix.service }}-${{ hashFiles('**/requirements.txt') }}
+          key: ${{ runner.os }}-pip-${{ matrix.service }}-${{ hashFiles('services/${{ matrix.service }}/requirements.txt') }}
           restore-keys: |
             ${{ runner.os }}-pip-${{ matrix.service }}-
 
+      # 4. Cài lint/test tools + stub và dependencies của service
       - name: 📦 Install dependencies for ${{ matrix.service }}
         run: |
           python -m pip install --upgrade pip
           pip install flake8 mypy pytest pytest-asyncio autopep8 types-requests
-          if [ "${{ matrix.service }}" = "scheduler" ]; then
-            pip install -r scheduler/requirements.txt
-          else
-            pip install -r ${{ matrix.service }}/requirements.txt
-          fi
+          pip install -r services/${{ matrix.service }}/requirements.txt
 
+      # 5. Auto-format code (PEP8) trước khi lint
       - name: 🛠️ Auto-format code
         run: |
           if [ "${{ matrix.service }}" = "scheduler" ]; then
-            autopep8 --in-place --aggressive --aggressive --recursive scheduler/scheduler
+            autopep8 --in-place --aggressive --aggressive --recursive services/scheduler/scheduler
           else
-            autopep8 --in-place --aggressive --aggressive --recursive ${{ matrix.service }}/app
+            autopep8 --in-place --aggressive --aggressive --recursive services/${{ matrix.service }}/app
           fi
 
+      # 6. Lint chỉ thư mục code
       - name: 📝 Lint code
         run: |
           if [ "${{ matrix.service }}" = "scheduler" ]; then
-            flake8 scheduler/scheduler
+            flake8 services/scheduler/scheduler
           else
-            flake8 ${{ matrix.service }}/app
+            flake8 services/${{ matrix.service }}/app
           fi
 
-      - name: 🔍 Type check with MyPy
-        run: mypy --ignore-missing-imports ${{ matrix.service }}
+      # 7. Type-check với MyPy
+      - name: 🔍 Type check
+        run: mypy --ignore-missing-imports services/${{ matrix.service }}
 
+      # 8. Chạy tests với pytest
       - name: ✅ Test with pytest
-        run: pytest ${{ matrix.service }} --maxfail=1 --disable-warnings -q
+        run: pytest services/${{ matrix.service }} --maxfail=1 --disable-warnings -q
