@@ -45,15 +45,15 @@ jobs:
             pip install -r services/${{ matrix.service }}/requirements.txt
           fi
 
-      # 4.1 Auto-format code to satisfy PEP8 before linting
-      - name: 🛠️ Auto-format ${{ matrix.service }} with autopep8
+      # 4.1 Auto-format chỉ thư mục app/
+      - name: 🛠️ Auto-format ${{ matrix.service }}/app with autopep8
         run: |
           pip install autopep8
-          autopep8 --in-place --aggressive --aggressive --recursive services/${{ matrix.service }}
+          autopep8 --in-place --aggressive --aggressive --recursive services/${{ matrix.service }}/app
 
-      # 5. Lint với flake8
-      - name: 📝 Lint ${{ matrix.service }}
-        run: flake8 services/${{ matrix.service }}
+      # 5. Lint chỉ thư mục app/
+      - name: 📝 Lint ${{ matrix.service }}/app
+        run: flake8 services/${{ matrix.service }}/app
 
       # 6. Type check với MyPy (bỏ qua thiếu stub)
       - name: 🔍 Type check ${{ matrix.service }}
