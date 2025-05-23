@@ -36,16 +36,20 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pip-
 
-      # 4. Install lint/test & stub packages + service deps
+      # 4. Install lint/test tools, stub và service deps
       - name: 📦 Install dependencies for ${{ matrix.service }}
         run: |
           python -m pip install --upgrade pip
-          # Lint / test tools + stub cho requests
           pip install flake8 mypy pytest pytest-asyncio types-requests
-          # Cài thêm các package runtime của service
           if [ -f services/${{ matrix.service }}/requirements.txt ]; then
             pip install -r services/${{ matrix.service }}/requirements.txt
           fi
+
+      # 4.1 Auto-format code to satisfy PEP8 before linting
+      - name: 🛠️ Auto-format ${{ matrix.service }} with autopep8
+        run: |
+          pip install autopep8
+          autopep8 --in-place --aggressive --aggressive --recursive services/${{ matrix.service }}
 
       # 5. Lint với flake8
       - name: 📝 Lint ${{ matrix.service }}
