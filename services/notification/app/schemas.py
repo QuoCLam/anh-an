@@ -2,9 +2,11 @@ from pydantic import BaseModel
 from datetime import datetime
 from typing import Optional
 
+
 class NotificationCreate(BaseModel):
     order_id: int
     message: str
+
 
 class Notification(BaseModel):
     id: int

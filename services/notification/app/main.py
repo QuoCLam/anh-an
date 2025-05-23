@@ -13,6 +13,7 @@ app.add_middleware(
     allow_origins=["*"], allow_methods=["*"], allow_headers=["*"]
 )
 
+
 def get_db():
     db = SessionLocal()
     try:
@@ -20,13 +21,19 @@ def get_db():
     finally:
         db.close()
 
+
 @app.get("/health")
-async def health(): return {"status":"ok"}
+async def health(): return {"status": "ok"}
+
 
 @app.post("/notifications/", response_model=schemas.Notification)
 def create_notif(n: schemas.NotificationCreate, db: Session = Depends(get_db)):
     return crud.create_notification(db, n)
 
+
 @app.get("/notifications/", response_model=list[schemas.Notification])
-def read_notifs(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+def read_notifs(
+        skip: int = 0,
+        limit: int = 100,
+        db: Session = Depends(get_db)):
     return crud.get_notifications(db, skip, limit)

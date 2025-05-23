@@ -3,6 +3,7 @@ from .mailer import send_email, logger
 
 router = APIRouter()
 
+
 @router.post("/notify")
 async def notify(data: dict):
     try:
