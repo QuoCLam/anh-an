@@ -1,0 +1,16 @@
+# .flake8
+[flake8]
+# Cho phép dòng dài tối đa 120 ký tự
+max-line-length = 120
+
+# Bỏ qua lỗi import unused (F401) và dòng quá dài (E501)
+ignore = F401, E501
+
+# (Tuỳ chọn) loại trừ thêm các folder không cần lint
+exclude =
+    .venv,
+    **/alembic,
+    **/migrations,
+    **/seed_data.py,
+    **/celerybeat-schedule,
+    **/__pycache__
