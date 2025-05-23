@@ -7,9 +7,10 @@ router = APIRouter()
 @router.post("/notify")
 async def notify(data: dict):
     try:
-        send_email(data)                # gửi thật (sẽ lỗi vì chưa config)
+        # Bạn có thể muốn validate data thành models.Notification trước khi gửi
+        send_email(data)
         status = "sent"
     except Exception as e:
         logger.warning("Send email failed: %s", e)
-        status = "failed"               # ↩︎ vẫn trả HTTP 200!
+        status = "failed"
     return {"status": status}

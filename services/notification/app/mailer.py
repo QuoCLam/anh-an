@@ -1,7 +1,11 @@
 import os
+import logging
 from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Mail
 from app import models
+
+# Tạo logger để các module khác import
+logger = logging.getLogger(__name__)
 
 SG_API_KEY = os.getenv("SENDGRID_API_KEY")
 FROM_EMAIL = os.getenv("FROM_EMAIL", "no-reply@example.com")
