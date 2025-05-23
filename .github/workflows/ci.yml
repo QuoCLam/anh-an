@@ -45,23 +45,30 @@ jobs:
             pip install -r services/${{ matrix.service }}/requirements.txt
           fi
 
-      # 4.1 Auto-format chỉ thư mục app/
-      - name: 🛠️ Auto-format ${{ matrix.service }}/app with autopep8
+      # 4.1 Auto-format only code folder
+      - name: 🛠️ Auto-format code with autopep8
         run: |
           pip install autopep8
-          autopep8 --in-place --aggressive --aggressive --recursive services/${{ matrix.service }}/app
+          if [ "${{ matrix.service }}" = "scheduler" ]; then
+            autopep8 --in-place --aggressive --aggressive --recursive services/scheduler/scheduler
+          else
+            autopep8 --in-place --aggressive --aggressive --recursive services/${{ matrix.service }}/app
+          fi
 
-      # 5. Lint chỉ thư mục app/
-      - name: 📝 Lint ${{ matrix.service }}/app
-        run: flake8 services/${{ matrix.service }}/app
+      # 5. Lint only code folder
+      - name: 📝 Lint code with flake8
+        run: |
+          if [ "${{ matrix.service }}" = "scheduler" ]; then
+            flake8 services/scheduler/scheduler
+          else
+            flake8 services/${{ matrix.service }}/app
+          fi
 
       # 6. Type check với MyPy (bỏ qua thiếu stub)
-      - name: 🔍 Type check ${{ matrix.service }}
+      - name: 🔍 Type check with MyPy
         run: |
-          mypy \
-            --ignore-missing-imports \
-            services/${{ matrix.service }}
+          mypy --ignore-missing-imports services/${{ matrix.service }}
 
       # 7. Chạy tests với pytest
-      - name: ✅ Test ${{ matrix.service }}
+      - name: ✅ Test with pytest
         run: pytest services/${{ matrix.service }} --maxfail=1 --disable-warnings -q
