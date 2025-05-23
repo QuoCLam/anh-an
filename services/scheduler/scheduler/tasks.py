@@ -40,6 +40,9 @@ def notify_new_orders():
             )
         except requests.RequestException as exc:
             logger.error(
-                "Failed to notify order %s: %s", order.get("id"), exc, exc_info=True
+                "Failed to notify order %s: %s", 
+                order.get("id"), 
+                exc, 
+                exc_info=True
             )
             # continue processing the rest of the orders
