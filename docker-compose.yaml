@@ -1,0 +1,73 @@
+# docker-compose.yaml
+services:
+  # ---------- Database ----------
+  postgres:
+    image: postgres:15
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: appuser          # ← thêm user khớp với services
+      POSTGRES_PASSWORD: "355355"     # ← mật khẩu yêu cầu
+      POSTGRES_DB: nhacnho            # ← tên DB mặc định cho dự án
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U appuser -d nhacnho"]
+      interval: 5s
+      retries: 5
+    networks: [nhacnho]
+
+  # ---------- Cache ----------
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    networks: [nhacnho]
+
+  # ---------- Backend Services ----------
+  orders_service:
+    build: ./services/orders
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: "postgresql+psycopg2://appuser:355355@postgres:5432/nhacnho"
+    ports: ["8000:8000"]
+    networks: [nhacnho]
+
+  notification_service:
+    build: ./services/notification
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: "postgresql+psycopg2://appuser:355355@postgres:5432/nhacnho"
+    ports: ["8001:8001"]
+    networks: [nhacnho]
+
+  scheduler_service:
+    build: ./services/scheduler
+    depends_on:
+      redis:
+        condition: service_started
+      orders_service:
+        condition: service_started
+    environment:
+      REDIS_URL: "redis://redis:6379/0"
+    networks: [nhacnho]
+
+  # ---------- Front-end ----------
+  frontend:
+    build:
+      context: ./services/frontend
+      target: production
+    ports: ["3000:80"]
+    networks: [nhacnho]
+
+# ---------- Global volumes & network ----------
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  nhacnho:
