@@ -4,30 +4,71 @@ on:
   push:
     branches: [main]
   pull_request:
+    branches: [main]
 
 jobs:
-  test:
+  test-orders:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        service: [orders, notification, scheduler]
+    name: Test Orders
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v3
 
       - name: Set up Python 3.10
         uses: actions/setup-python@v4
         with:
-          python-version: '3.10'
+          python-version: 3.10
 
-      - name: Install dependencies for ${{ matrix.service }}
-        run: |
-          pip install -r services/${{ matrix.service }}/requirements.txt
+      - name: Install dependencies for orders
+        run: pip install -r services/orders/requirements.txt
 
-      - name: Check pytest version
+      - name: Clean pycache and .pyc before test
         run: |
-          pytest --version
+          find . -name "__pycache__" -type d -exec rm -rf {} +
+          find . -name "*.pyc" -delete
 
-      - name: Run pytest for ${{ matrix.service }}
+      - name: Run pytest for orders
+        run: pytest services/orders/tests/ --maxfail=1 --disable-warnings -q
+
+  test-notification:
+    runs-on: ubuntu-latest
+    name: Test Notification
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.10
+
+      - name: Install dependencies for notification
+        run: pip install -r services/notification/requirements.txt
+
+      - name: Clean pycache and .pyc before test
         run: |
-          pytest services/${{ matrix.service }}/tests --maxfail=1 --disable-warnings -q
+          find . -name "__pycache__" -type d -exec rm -rf {} +
+          find . -name "*.pyc" -delete
+
+      - name: Run pytest for notification
+        run: pytest services/notification/tests/ --maxfail=1 --disable-warnings -q
+
+  test-scheduler:
+    runs-on: ubuntu-latest
+    name: Test Scheduler
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.10
+
+      - name: Install dependencies for scheduler
+        run: pip install -r services/scheduler/requirements.txt
+
+      - name: Clean pycache and .pyc before test
+        run: |
+          find . -name "__pycache__" -type d -exec rm -rf {} +
+          find . -name "*.pyc" -delete
+
+      - name: Run pytest for scheduler
+        run: pytest services/scheduler/tests/ --maxfail=1 --disable-warnings -q
