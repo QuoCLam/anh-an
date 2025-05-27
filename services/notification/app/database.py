@@ -3,7 +3,7 @@ from typing import cast
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 
-# Bắt buộc biến môi trường phải được set, rồi ép kiểu về str
+# Lấy DATABASE_URL và kiểm tra luôn
 DATABASE_URL = os.getenv('DATABASE_URL')
 if DATABASE_URL is None:
     raise RuntimeError("DATABASE_URL environment variable is not set")
