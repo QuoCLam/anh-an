@@ -1,24 +1,42 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
 jobs:
   test:
     runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        service:
+          - orders
+          - notification
+          - scheduler
+
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v3
 
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.10'
+          python-version: "3.10"
 
-      - name: Install dependencies
+      - name: Install dependencies for ${{ matrix.service }}
         run: |
-          pip install -r services/orders/requirements.txt
-          pip install -r services/notification/requirements.txt
-          pip install -r services/scheduler/requirements.txt
+          python -m pip install --upgrade pip
+          pip install -r services/${{ matrix.service }}/requirements.txt
 
-      - name: Clean pycache and .pyc files
+      - name: Clean pycache and .pyc
         run: |
-          find . -name "__pycache__" -type d -exec rm -rf {} +
+          find . -type d -name "__pycache__" -exec rm -rf {} +
           find . -name "*.pyc" -delete
 
-      - name: Run pytest
-        run: pytest services/ --maxfail=1 --disable-warnings -q
+      - name: Run pytest for ${{ matrix.service }}
+        run: |
+          pytest services/${{ matrix.service }}/tests --maxfail=1 --disable-warnings -q
+
