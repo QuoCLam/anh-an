@@ -1,71 +1,77 @@
-name: 🧪 CI — Lint & Test Python Services
+name: 🧪 CI
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main]
   pull_request:
-    branches: [main, develop]
+    branches: [main]
 
 jobs:
   test:
     runs-on: ubuntu-latest
 
+    strategy:
+      matrix:
+        service: [orders, notification, scheduler]
+
     steps:
-      # 1. Lấy code về
-      - name: Checkout repository
-        uses: actions/checkout@v4
+    - name: Checkout repository
+      uses: actions/checkout@v4
 
-      # 2. Cài Python
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.10"
+    - name: Setup Python 3.10
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
 
-      # 3. Cài dependencies cho từng service (đã bao gồm types-requests cho scheduler)
-      - name: Install dependencies for orders
-        run: pip install -r services/orders/requirements.txt
+    - name: Cache pip
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
 
-      - name: Install dependencies for notification
-        run: pip install -r services/notification/requirements.txt
+    # Cài dependencies riêng cho từng service
+    - name: Install dependencies
+      run: |
+        pip install --upgrade pip
+        pip install -r services/${{ matrix.service }}/requirements.txt
 
-      - name: Install dependencies for scheduler + types-requests (force)
-        run: |
-          pip install --upgrade pip
-          pip install -r services/scheduler/requirements.txt
-          pip install --force-reinstall types-requests
+    # Chỉ cài types-requests lại riêng cho scheduler trước khi chạy mypy
+    - name: Fix types-requests for scheduler (if needed)
+      if: matrix.service == 'scheduler'
+      run: pip install --force-reinstall types-requests
 
-      # 4. Debug: Kiểm tra types-requests đã cài chưa
-      - name: Kiểm tra types-requests đã cài chưa
-        run: |
-          pip freeze | grep types-requests || echo "types-requests NOT FOUND"
-          pip show types-requests || echo "types-requests NOT FOUND"
+    # Format code (autopep8)
+    - name: Auto-format code with autopep8
+      run: |
+        if [ "${{ matrix.service }}" = "orders" ] || [ "${{ matrix.service }}" = "notification" ]; then
+          autopep8 --in-place --aggressive --aggressive --recursive services/${{ matrix.service }}/app
+        elif [ "${{ matrix.service }}" = "scheduler" ]; then
+          autopep8 --in-place --aggressive --aggressive --recursive services/scheduler/scheduler
+        fi
 
-      # 5. Lint code
-      - name: Lint orders
-        run: flake8 services/orders/app
+    # Lint code (flake8)
+    - name: Lint code with flake8
+      run: |
+        if [ "${{ matrix.service }}" = "orders" ] || [ "${{ matrix.service }}" = "notification" ]; then
+          flake8 services/${{ matrix.service }}/app
+        elif [ "${{ matrix.service }}" = "scheduler" ]; then
+          flake8 services/scheduler/scheduler
+        fi
 
-      - name: Lint notification
-        run: flake8 services/notification/app
+    # Type check (mypy)
+    - name: Type check with mypy
+      run: |
+        if [ "${{ matrix.service }}" = "orders" ] || [ "${{ matrix.service }}" = "notification" ]; then
+          mypy --ignore-missing-imports services/${{ matrix.service }}/app
+        elif [ "${{ matrix.service }}" = "scheduler" ]; then
+          mypy --ignore-missing-imports services/scheduler/scheduler
+        fi
 
-      - name: Lint scheduler
-        run: flake8 services/scheduler/scheduler
-
-      # 6. Type-check với mypy
-      - name: mypy orders
-        run: mypy --ignore-missing-imports services/orders
-
-      - name: mypy notification
-        run: mypy --ignore-missing-imports services/notification
-
-      - name: mypy scheduler
-        run: mypy --ignore-missing-imports services/scheduler
-
-      # 7. Test với pytest
-      - name: Test orders
-        run: pytest services/orders/tests --maxfail=1 --disable-warnings -q
-
-      - name: Test notification
-        run: pytest services/notification/tests --maxfail=1 --disable-warnings -q
-
-      - name: Test scheduler
-        run: pytest services/scheduler/tests --maxfail=1 --disable-warnings -q
+    # Test với pytest
+    - name: Test with pytest
+      run: |
+        if [ "${{ matrix.service }}" = "orders" ] || [ "${{ matrix.service }}" = "notification" ]; then
+          pytest services/${{ matrix.service }}/tests --maxfail=1 --disable-warnings -q
+        elif [ "${{ matrix.service }}" = "scheduler" ]; then
+          pytest services/scheduler/tests --maxfail=1 --disable-warnings -q
+        fi
