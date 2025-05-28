@@ -19,11 +19,9 @@ jobs:
       - name: ⬇️ Checkout code
         uses: actions/checkout@v4
 
-      # Gán đường dẫn requirements.txt đúng cho từng service
       - name: 🔧 Set REQUIREMENTS_FILE path
         run: echo "REQUIREMENTS_FILE=services/${{ matrix.service }}/requirements.txt" >> $GITHUB_ENV
 
-      # Cài tất cả package cần thiết (bao gồm flake8, mypy, autopep8, pytest)
       - name: 📦 Install requirements
         run: pip install --upgrade pip && pip install -r ${{ env.REQUIREMENTS_FILE }}
 
