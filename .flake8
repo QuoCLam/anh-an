@@ -9,4 +9,5 @@ exclude =
     **/migrations,
     **/seed_data.py,
     **/celerybeat-schedule,
-    **/__pycache__
+    **/__pycache__,
+
