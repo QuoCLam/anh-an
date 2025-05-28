@@ -28,28 +28,28 @@ jobs:
       # ---- AUTOPEP8 ----
       - name: ⚡️ Auto-format code with autopep8
         run: |
-          if [ "${{ matrix.service }}" = "orders" ] || [ "${{ matrix.service }}" = "notification" ]; then
-            autopep8 --in-place --recursive services/${{ matrix.service }}/app
-          elif [ "${{ matrix.service }}" = "scheduler" ]; then
-            autopep8 --in-place --recursive services/scheduler/scheduler
+          if [ -d "services/${{ matrix.service }}/app" ]; then
+            autopep8 --in-place --aggressive --aggressive --recursive services/${{ matrix.service }}/app
+          elif [ -d "services/${{ matrix.service }}/scheduler" ]; then
+            autopep8 --in-place --aggressive --aggressive --recursive services/${{ matrix.service }}/scheduler
           fi
 
       # ---- FLAKE8 ----
       - name: 💄 Lint code with flake8
         run: |
-          if [ "${{ matrix.service }}" = "orders" ] || [ "${{ matrix.service }}" = "notification" ]; then
+          if [ -d "services/${{ matrix.service }}/app" ]; then
             flake8 services/${{ matrix.service }}/app
-          elif [ "${{ matrix.service }}" = "scheduler" ]; then
-            flake8 services/scheduler/scheduler
+          elif [ -d "services/${{ matrix.service }}/scheduler" ]; then
+            flake8 services/${{ matrix.service }}/scheduler
           fi
 
       # ---- MYPY ----
       - name: 🧠 Type check with mypy
         run: |
-          if [ "${{ matrix.service }}" = "orders" ] || [ "${{ matrix.service }}" = "notification" ]; then
+          if [ -d "services/${{ matrix.service }}/app" ]; then
             mypy --ignore-missing-imports services/${{ matrix.service }}/app
-          elif [ "${{ matrix.service }}" = "scheduler" ]; then
-            mypy --ignore-missing-imports services/scheduler/scheduler
+          elif [ -d "services/${{ matrix.service }}/scheduler" ]; then
+            mypy --ignore-missing-imports services/${{ matrix.service }}/scheduler
           fi
 
       # ---- PYTEST ----
