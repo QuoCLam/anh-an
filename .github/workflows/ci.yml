@@ -19,14 +19,11 @@ jobs:
       - name: ⬇️ Checkout code
         uses: actions/checkout@v4
 
+      # Set đường dẫn requirements.txt ĐÚNG VỚI CÂY THƯ MỤC CỦA BẠN
       - name: 🔧 Set REQUIREMENTS_FILE path
         id: set_req_file
         run: |
-          if [ "${{ matrix.service }}" = "scheduler" ]; then
-            echo "REQUIREMENTS_FILE=scheduler/requirements.txt" >> $GITHUB_ENV
-          else
-            echo "REQUIREMENTS_FILE=services/${{ matrix.service }}/requirements.txt" >> $GITHUB_ENV
-          fi
+          echo "REQUIREMENTS_FILE=services/${{ matrix.service }}/requirements.txt" >> $GITHUB_ENV
 
       - name: 🛑 Cancel workflow if requirements file not found
         run: |
@@ -49,7 +46,7 @@ jobs:
       - name: 📦 Install requirements
         run: pip install --upgrade pip && pip install -r ${{ env.REQUIREMENTS_FILE }}
 
-      # Chạy flake8 nếu có file cấu hình và cài trong requirements.txt
+      # Lint code (flake8)
       - name: 💄 Lint code (flake8)
         run: |
           if command -v flake8 >/dev/null 2>&1; then
@@ -58,7 +55,7 @@ jobs:
             echo "flake8 not installed, skipping lint."
           fi
 
-      # Chạy mypy nếu có
+      # Type check (mypy)
       - name: 🧠 Type check (mypy)
         run: |
           if command -v mypy >/dev/null 2>&1; then
@@ -67,7 +64,7 @@ jobs:
             echo "mypy not installed, skipping type check."
           fi
 
-      # Chạy pytest nếu có
+      # Run tests (pytest)
       - name: 🧪 Run tests (pytest)
         run: |
           if command -v pytest >/dev/null 2>&1; then
