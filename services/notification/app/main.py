@@ -38,4 +38,3 @@ def read_notifs(
     db: Session = Depends(get_db),
 ):
     return crud.get_notifications(db, skip, limit)
-

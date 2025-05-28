@@ -10,6 +10,7 @@ logger = logging.getLogger(__name__)
 SG_API_KEY = os.getenv("SENDGRID_API_KEY")
 FROM_EMAIL = os.getenv("FROM_EMAIL", "no-reply@example.com")
 
+
 def send_email(notif: models.Notification) -> None:
     to_email = notif.payload["to"]          # Lấy từ order/customer
     subject = notif.payload.get("subject", "Order Update")

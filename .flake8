@@ -1,12 +1,8 @@
-# .flake8
 [flake8]
-# Cho phép dòng dài tới 120 ký tự thay vì 79
 max-line-length = 120
 
-# Bỏ qua lỗi dòng quá dài (E501) và import không dùng (F401)
 ignore = E501, F401
 
-# Loại trừ các thư mục/mẫu file không cần lint
 exclude =
     .venv,
     **/alembic,
