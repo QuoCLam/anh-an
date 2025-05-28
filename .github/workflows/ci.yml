@@ -19,36 +19,17 @@ jobs:
       - name: ⬇️ Checkout code
         uses: actions/checkout@v4
 
+      # Gán đường dẫn requirements.txt đúng cho từng service
       - name: 🔧 Set REQUIREMENTS_FILE path
-        id: set_req_file
-        run: |
-          echo "REQUIREMENTS_FILE=services/${{ matrix.service }}/requirements.txt" >> $GITHUB_ENV
+        run: echo "REQUIREMENTS_FILE=services/${{ matrix.service }}/requirements.txt" >> $GITHUB_ENV
 
-      - name: 🛑 Cancel workflow if requirements file not found
-        run: |
-          if [ ! -f "${{ env.REQUIREMENTS_FILE }}" ]; then
-            echo "❌ File ${{ env.REQUIREMENTS_FILE }} not found! Cancelling workflow."
-            exit 1
-          fi
-
-      - name: 💾 Cache pip dependencies
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles(env.REQUIREMENTS_FILE) }}
-
-      - name: 🐍 Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.10"
-
+      # Cài tất cả package cần thiết (bao gồm flake8, mypy, autopep8, pytest)
       - name: 📦 Install requirements
         run: pip install --upgrade pip && pip install -r ${{ env.REQUIREMENTS_FILE }}
 
       # ---- AUTOPEP8 ----
       - name: ⚡️ Auto-format code with autopep8
         run: |
-          pip install autopep8
           if [ "${{ matrix.service }}" = "orders" ] || [ "${{ matrix.service }}" = "notification" ]; then
             autopep8 --in-place --recursive services/${{ matrix.service }}/app
           elif [ "${{ matrix.service }}" = "scheduler" ]; then
