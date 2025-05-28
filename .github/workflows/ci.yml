@@ -21,21 +21,26 @@ jobs:
         with:
           python-version: "3.10"
 
-      # 3. Cài dependencies cho từng service
+      # 3. Cài dependencies cho từng service (đã bao gồm types-requests cho scheduler)
       - name: Install dependencies for orders
         run: pip install -r services/orders/requirements.txt
 
       - name: Install dependencies for notification
         run: pip install -r services/notification/requirements.txt
 
-      - name: Install dependencies for scheduler
+      - name: Install dependencies for scheduler + types-requests (force)
         run: |
           pip install --upgrade pip
           pip install -r services/scheduler/requirements.txt
-          pip install types-requests
+          pip install --force-reinstall types-requests
+
+      # 4. Debug: Kiểm tra types-requests đã cài chưa
+      - name: Kiểm tra types-requests đã cài chưa
+        run: |
+          pip freeze | grep types-requests || echo "types-requests NOT FOUND"
           pip show types-requests || echo "types-requests NOT FOUND"
 
-      # 4. Lint code
+      # 5. Lint code
       - name: Lint orders
         run: flake8 services/orders/app
 
@@ -45,7 +50,7 @@ jobs:
       - name: Lint scheduler
         run: flake8 services/scheduler/scheduler
 
-      # 5. Type-check với mypy
+      # 6. Type-check với mypy
       - name: mypy orders
         run: mypy --ignore-missing-imports services/orders
 
@@ -55,7 +60,7 @@ jobs:
       - name: mypy scheduler
         run: mypy --ignore-missing-imports services/scheduler
 
-      # 6. Test với pytest
+      # 7. Test với pytest
       - name: Test orders
         run: pytest services/orders/tests --maxfail=1 --disable-warnings -q
 
