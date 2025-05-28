@@ -10,4 +10,4 @@ pytest
 flake8
 autopep8
 mypy
-
+types-requests
