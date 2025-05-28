@@ -2,61 +2,65 @@ name: 🧪 CI — Lint & Test Python Services
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [main, develop]
   pull_request:
-    branches: [ main, develop ]
+    branches: [main, develop]
 
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        service: [orders, notification, scheduler]
-    env:
-      PYTHONUNBUFFERED: 1
 
     steps:
-      - name: ⬇️ Checkout code
+      # 1. Lấy code về
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: 🔧 Set REQUIREMENTS_FILE path
-        run: echo "REQUIREMENTS_FILE=services/${{ matrix.service }}/requirements.txt" >> $GITHUB_ENV
+      # 2. Cài Python
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
 
-      - name: 📦 Install requirements
-        run: pip install --upgrade pip && pip install -r ${{ env.REQUIREMENTS_FILE }}
+      # 3. Cài dependencies cho từng service
+      - name: Install dependencies for orders
+        run: pip install -r services/orders/requirements.txt
 
-      # ---- AUTOPEP8 ----
-      - name: ⚡️ Auto-format code with autopep8
+      - name: Install dependencies for notification
+        run: pip install -r services/notification/requirements.txt
+
+      - name: Install dependencies for scheduler
         run: |
-          if [ -d "services/${{ matrix.service }}/app" ]; then
-            autopep8 --in-place --aggressive --aggressive --recursive services/${{ matrix.service }}/app
-          elif [ -d "services/${{ matrix.service }}/scheduler" ]; then
-            autopep8 --in-place --aggressive --aggressive --recursive services/${{ matrix.service }}/scheduler
-          fi
+          pip install --upgrade pip
+          pip install -r services/scheduler/requirements.txt
+          pip install types-requests
+          pip show types-requests || echo "types-requests NOT FOUND"
 
-      # ---- FLAKE8 ----
-      - name: 💄 Lint code with flake8
-        run: |
-          if [ -d "services/${{ matrix.service }}/app" ]; then
-            flake8 services/${{ matrix.service }}/app
-          elif [ -d "services/${{ matrix.service }}/scheduler" ]; then
-            flake8 services/${{ matrix.service }}/scheduler
-          fi
+      # 4. Lint code
+      - name: Lint orders
+        run: flake8 services/orders/app
 
-      # ---- MYPY ----
-      - name: 🧠 Type check with mypy
-        run: |
-          if [ -d "services/${{ matrix.service }}/app" ]; then
-            mypy --ignore-missing-imports services/${{ matrix.service }}/app
-          elif [ -d "services/${{ matrix.service }}/scheduler" ]; then
-            mypy --ignore-missing-imports services/${{ matrix.service }}/scheduler
-          fi
+      - name: Lint notification
+        run: flake8 services/notification/app
 
-      # ---- PYTEST ----
-      - name: 🧪 Run tests with pytest
-        run: |
-          if [ -d "services/${{ matrix.service }}/tests" ]; then
-            pytest services/${{ matrix.service }}/tests --maxfail=1 --disable-warnings -q
-          else
-            echo "No tests folder found for ${{ matrix.service }}, skipping pytest."
-          fi
+      - name: Lint scheduler
+        run: flake8 services/scheduler/scheduler
+
+      # 5. Type-check với mypy
+      - name: mypy orders
+        run: mypy --ignore-missing-imports services/orders
+
+      - name: mypy notification
+        run: mypy --ignore-missing-imports services/notification
+
+      - name: mypy scheduler
+        run: mypy --ignore-missing-imports services/scheduler
+
+      # 6. Test với pytest
+      - name: Test orders
+        run: pytest services/orders/tests --maxfail=1 --disable-warnings -q
+
+      - name: Test notification
+        run: pytest services/notification/tests --maxfail=1 --disable-warnings -q
+
+      - name: Test scheduler
+        run: pytest services/scheduler/tests --maxfail=1 --disable-warnings -q
