@@ -29,18 +29,17 @@ jobs:
         path: ~/.cache/pip
         key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
 
-    # Cài dependencies riêng cho từng service
     - name: Install dependencies
       run: |
         pip install --upgrade pip
         pip install -r services/${{ matrix.service }}/requirements.txt
 
-    # Chỉ cài types-requests lại riêng cho scheduler trước khi chạy mypy
-    - name: Fix types-requests for scheduler (if needed)
+    # CÀI types-requests RIÊNG CHO SCHEDULER
+    - name: Install types-requests for scheduler
       if: matrix.service == 'scheduler'
       run: pip install --force-reinstall types-requests
 
-    # Format code (autopep8)
+    # Auto-format với autopep8
     - name: Auto-format code with autopep8
       run: |
         if [ "${{ matrix.service }}" = "orders" ] || [ "${{ matrix.service }}" = "notification" ]; then
@@ -49,7 +48,7 @@ jobs:
           autopep8 --in-place --aggressive --aggressive --recursive services/scheduler/scheduler
         fi
 
-    # Lint code (flake8)
+    # Lint với flake8
     - name: Lint code with flake8
       run: |
         if [ "${{ matrix.service }}" = "orders" ] || [ "${{ matrix.service }}" = "notification" ]; then
@@ -58,13 +57,13 @@ jobs:
           flake8 services/scheduler/scheduler
         fi
 
-    # Type check (mypy)
+    # Type check với mypy
     - name: Type check with mypy
       run: |
         if [ "${{ matrix.service }}" = "orders" ] || [ "${{ matrix.service }}" = "notification" ]; then
           mypy --ignore-missing-imports services/${{ matrix.service }}/app
         elif [ "${{ matrix.service }}" = "scheduler" ]; then
-          mypy --ignore-missing-imports services/scheduler/scheduler
+          mypy --ignore-missing-imports services/scheduler
         fi
 
     # Test với pytest
