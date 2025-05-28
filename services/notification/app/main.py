@@ -4,7 +4,6 @@ from .database import SessionLocal, engine
 from . import crud, models, schemas
 from fastapi.middleware.cors import CORSMiddleware
 
-# tạo bảng
 models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
