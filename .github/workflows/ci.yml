@@ -67,8 +67,8 @@ jobs:
       # Run tests (pytest)
       - name: 🧪 Run tests (pytest)
         run: |
-          if command -v pytest >/dev/null 2>&1; then
-            pytest --maxfail=1 --disable-warnings -q || true
+          if [ -d "services/${{ matrix.service }}/tests" ]; then
+            pytest services/${{ matrix.service }} --maxfail=1 --disable-warnings -q
           else
-            echo "pytest not installed, skipping tests."
+            echo "No tests folder found for ${{ matrix.service }}, skipping pytest."
           fi
