@@ -18,6 +18,9 @@ COPY alembic ./alembic
 # (4) Copy toàn bộ code Python
 COPY app ./app
 
+# (Thêm dòng này để set PYTHONPATH!)
+ENV PYTHONPATH=/app
+
 # (5) Lệnh khởi động: upgrade db rồi chạy FastAPI
 CMD alembic upgrade head && \
     uvicorn app.main:app --host 0.0.0.0 --port 8000
