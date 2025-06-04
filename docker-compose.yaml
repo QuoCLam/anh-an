@@ -16,6 +16,24 @@ services:
       retries: 5
     networks: [nhacnho]
 
+  # USERS SERVICE (QUAN TRỌNG)
+  users_service:
+    build: ./services/users
+    container_name: nhacnho-users_service
+    depends_on:
+      - postgres
+    environment:
+      - POSTGRES_DB=nhacnho
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=355355
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      # Thêm các biến môi trường khác nếu có (ví dụ SECRET_KEY)
+    ports:
+      - "8002:8000"
+    volumes:
+      - ./services/users:/app
+    restart: always
   # ---------- Cache ----------
   redis:
     image: redis:7-alpine

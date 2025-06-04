@@ -52,3 +52,11 @@ def get_today_tasks(db: Session):
         models.Task.created_at >= today,
         models.Task.created_at < tomorrow
     ).all()
+
+def delete_order(db: Session, order_id: int) -> bool:
+    order = db.query(models.Order).filter(models.Order.id == order_id).first()
+    if not order:
+        return False
+    db.delete(order)
+    db.commit()
+    return True
