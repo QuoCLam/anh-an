@@ -1,91 +1,90 @@
-# docker-compose.yaml
 services:
-  # ---------- Database ----------
   postgres:
-    image: postgres:15
+    image: postgres:16
+    container_name: nhacnho-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_USER: appuser          # ← thêm user khớp với services
-      POSTGRES_PASSWORD: "355355"     # ← mật khẩu yêu cầu
-      POSTGRES_DB: nhacnho            # ← tên DB mặc định cho dự án
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=nhacnho
+    ports:
+      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U appuser -d nhacnho"]
-      interval: 5s
-      retries: 5
-    networks: [nhacnho]
 
-  # USERS SERVICE (QUAN TRỌNG)
+  redis:
+    image: redis:7
+    container_name: nhacnho-redis
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+
   users_service:
-    build: ./services/users
+    build:
+      context: ./services/users
     container_name: nhacnho-users_service
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
     depends_on:
       - postgres
-    environment:
-      - POSTGRES_DB=nhacnho
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=355355
-      - DB_HOST=postgres
-      - DB_PORT=5432
-      # Thêm các biến môi trường khác nếu có (ví dụ SECRET_KEY)
-    ports:
-      - "8002:8000"
-    volumes:
-      - ./services/users:/app
-    restart: always
-  # ---------- Cache ----------
-  redis:
-    image: redis:7-alpine
     restart: unless-stopped
-    volumes:
-      - redis_data:/data
-    networks: [nhacnho]
 
-  # ---------- Backend Services ----------
   orders_service:
-    build: ./services/orders
+    build:
+      context: ./services/orders
+    container_name: nhacnho-orders_service
+    env_file:
+      - .env
     depends_on:
-      postgres:
-        condition: service_healthy
-    environment:
-      DATABASE_URL: "postgresql+psycopg2://appuser:355355@postgres:5432/nhacnho"
-    ports: ["8000:8000"]
-    networks: [nhacnho]
+      - postgres
+    restart: unless-stopped
 
   notification_service:
-    build: ./services/notification
+    build:
+      context: ./services/notification
+    container_name: nhacnho-notification_service
+    env_file:
+      - .env
     depends_on:
-      postgres:
-        condition: service_healthy
-    environment:
-      DATABASE_URL: "postgresql+psycopg2://appuser:355355@postgres:5432/nhacnho"
-    ports: ["8001:8001"]
-    networks: [nhacnho]
+      - postgres
+    restart: unless-stopped
+
+  lab_service:
+    build:
+      context: ./services/lab
+    container_name: nhacnho-lab_service
+    env_file:
+      - .env
+    depends_on:
+      - postgres
+    restart: unless-stopped
 
   scheduler_service:
-    build: ./services/scheduler
+    build:
+      context: ./services/scheduler
+    container_name: nhacnho-scheduler_service
+    env_file:
+      - .env
     depends_on:
-      redis:
-        condition: service_started
-      orders_service:
-        condition: service_started
-    environment:
-      REDIS_URL: "redis://redis:6379/0"
-    networks: [nhacnho]
+      - redis
+    restart: unless-stopped
 
-  # ---------- Front-end ----------
   frontend:
     build:
       context: ./services/frontend
-      target: production
-    ports: ["3000:80"]
-    networks: [nhacnho]
+    container_name: nhacnho-frontend
+    env_file:
+      - .env
+    ports:
+      - "3000:80"
+    depends_on:
+      - users_service
+      - orders_service
+      - notification_service
+      - lab_service
+    restart: unless-stopped
 
-# ---------- Global volumes & network ----------
 volumes:
   postgres_data:
-  redis_data:
-
-networks:
-  nhacnho:

@@ -12,6 +12,14 @@ from app.models import Base
 
 config = context.config
 fileConfig(config.config_file_name)
+
+# Ghi đè sqlalchemy.url bằng DATABASE_URL từ biến môi trường
+database_url = os.getenv("DATABASE_URL")
+if database_url:
+    config.set_main_option("sqlalchemy.url", database_url)
+else:
+    raise ValueError("DATABASE_URL environment variable not set")
+
 target_metadata = Base.metadata
 
 def run_migrations_offline():

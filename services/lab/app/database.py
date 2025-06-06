@@ -1,7 +1,10 @@
-from sqlmodel import create_engine, Session, SQLModel
+import os
+from sqlmodel import SQLModel, create_engine, Session
+from dotenv import load_dotenv
 
-DATABASE_URL = "postgresql://postgres:355355@localhost:5432/nhacnho"
+load_dotenv()  # Đảm bảo đã đọc file .env
 
+DATABASE_URL = os.getenv("DATABASE_URL")
 engine = create_engine(DATABASE_URL, echo=True)
 
 def get_session():

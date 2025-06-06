@@ -7,15 +7,13 @@ from .models import User
 from . import auth
 from . import schemas
 import os
-from .schemas import UserOut
-
-print("=== RUNNING MAIN.PY AT:", os.path.abspath(__file__))
 
 app = FastAPI(title="User Service")
 
+# Enable CORS for frontend dev/test
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # chỉnh lại origin nếu cần
+    allow_origins=["*"],  # Cần thiết thì chỉnh lại theo domain thật
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -46,6 +44,7 @@ def require_admin(user: User = Depends(get_current_user)):
         raise HTTPException(status_code=403, detail="Chỉ admin được phép thực hiện chức năng này")
     return user
 
+# Đăng nhập - trả về access token
 @app.post("/login")
 def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     user = db.query(User).filter(User.username == form_data.username).first()
@@ -54,11 +53,12 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
     access_token = auth.create_access_token({"sub": user.username})
     return {"access_token": access_token, "token_type": "bearer"}
 
-@app.get("/users/me", response_model=UserOut)
+# Lấy thông tin user hiện tại (đã login)
+@app.get("/users/me", response_model=schemas.UserOut)
 def get_me(user: User = Depends(get_current_user)):
-    return user  # để FastAPI tự map sang schema UserOut
+    return user
 
-# ======================= API QUẢN LÝ USER CHO ADMIN ============================
+# ================= USER CRUD DÀNH CHO ADMIN ==================
 
 @app.get("/users", response_model=list[schemas.UserOut])
 def get_users(db: Session = Depends(get_db), user: User = Depends(require_admin)):
@@ -69,7 +69,12 @@ def create_user(user_in: schemas.UserCreate, db: Session = Depends(get_db), user
     if db.query(User).filter_by(username=user_in.username).first():
         raise HTTPException(status_code=400, detail="Username already exists")
     hashed_password = auth.pwd_context.hash(user_in.password)
-    new_user = User(username=user_in.username, password=hashed_password, role=user_in.role, department=user_in.department)
+    new_user = User(
+        username=user_in.username,
+        password=hashed_password,
+        role=user_in.role,
+        department=user_in.department,
+    )
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
