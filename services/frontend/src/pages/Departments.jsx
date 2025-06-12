@@ -1,142 +1,155 @@
 import React, { useEffect, useState } from "react";
-import { getDepartments, createDepartment, updateDepartment, deleteDepartment } from "../api/departmentApi";
-import { useUser } from "../UserContext"; // Đổi lại đúng hook
+import {
+  getDepartments,
+  createDepartment,
+  updateDepartment,
+  deleteDepartment,
+} from "@/api/departmentApi";
+import Button from "@/components/ui/button";
+import Dialog from "@/components/ui/dialog";
+import Input from "@/components/ui/input";
+import DepartmentForm from "@/components/DepartmentForm";
+import { useNavigate } from "react-router-dom";
 
 export default function Departments() {
-  const [departments, setDepartments] = useState([]);
-  const [newName, setNewName] = useState("");
-  const [editId, setEditId] = useState(null);
-  const [editName, setEditName] = useState("");
-  const { hasPermission } = useUser();
+  const [deps, setDeps] = useState([]);
+  const [query, setQuery] = useState("");
+  const [dialog, setDialog] = useState({
+    open: false,
+    mode: "create",
+    data: {},
+  });
+
+  const navigate = useNavigate();
+  const token = localStorage.getItem("token");
+
+  /* ----------------- API helpers ----------------- */
+  const fetchDeps = async () => {
+    try {
+      const res = await getDepartments(token); // truyền token
+      setDeps(res.data);
+    } catch (err) {
+      if (err?.response?.status === 401) {
+        alert("Phiên đăng nhập hết hạn!");
+        localStorage.removeItem("token");
+        navigate("/login", { replace: true });
+      } else {
+        alert("Không thể lấy danh sách phòng ban!");
+      }
+      setDeps([]);
+    }
+  };
 
   useEffect(() => {
-    fetchDepartments();
-  }, []);
+    if (token) fetchDeps();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token]);
 
-  const fetchDepartments = async () => {
+  const filtered = deps.filter((d) =>
+    d.name.toLowerCase().includes(query.toLowerCase())
+  );
+
+  /* ----------------- SAVE ----------------- */
+  const handleSave = async (data) => {
+    const payload = { name: data.name.trim() };
+
     try {
-      const data = await getDepartments();
-      setDepartments(data);
-    } catch (error) {
-      alert("Không lấy được danh sách phòng ban");
+      if (dialog.mode === "create") {
+        await createDepartment(payload, token);
+      } else {
+        await updateDepartment(dialog.data.id, payload, token);
+      }
+      setDialog({ open: false, mode: "create", data: {} });
+      fetchDeps();
+    } catch (err) {
+      alert(err?.response?.data?.detail || "Lỗi xử lý phòng ban!");
     }
   };
 
-  const handleCreate = async () => {
-    if (!newName) return;
-    try {
-      await createDepartment({ name: newName });
-      setNewName("");
-      fetchDepartments();
-    } catch (error) {
-      alert("Không tạo được phòng ban!");
-    }
-  };
-
-  const handleUpdate = async (id) => {
-    try {
-      await updateDepartment(id, { name: editName });
-      setEditId(null);
-      setEditName("");
-      fetchDepartments();
-    } catch (error) {
-      alert("Cập nhật thất bại!");
-    }
-  };
-
+  /* ----------------- DELETE ----------------- */
   const handleDelete = async (id) => {
-    if (!window.confirm("Xoá phòng ban này?")) return;
-    try {
-      await deleteDepartment(id);
-      fetchDepartments();
-    } catch (error) {
-      alert("Xoá thất bại!");
+    if (window.confirm("Bạn có chắc chắn muốn xoá phòng ban này?")) {
+      try {
+        await deleteDepartment(id, token);
+        fetchDeps();
+      } catch (err) {
+        alert(
+          err?.response?.data?.detail || "Không xoá được! Có thể phòng ban còn nhân sự."
+        );
+      }
     }
   };
 
+  /* ----------------- RENDER ----------------- */
   return (
-    <div className="p-6 max-w-xl mx-auto">
-      <h1 className="text-xl font-bold mb-4">Quản lý phòng ban</h1>
-      <div className="flex gap-2 mb-4">
-        <input
-          placeholder="Tên phòng ban mới"
-          value={newName}
-          onChange={e => setNewName(e.target.value)}
-          className="border rounded px-2 py-1"
-        />
-        <button
-          onClick={handleCreate}
-          disabled={!hasPermission("departments:create") || !newName}
-          className="bg-blue-600 text-white px-3 py-1 rounded disabled:bg-gray-300"
-        >
-          Thêm
-        </button>
+    <div className="p-6 space-y-4 animate-fade-in bg-gray-900 min-h-screen">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold text-blue-300">Quản lý Phòng ban</h1>
+        <Button onClick={() => setDialog({ open: true, mode: "create", data: {} })}>
+          + Thêm phòng
+        </Button>
       </div>
-      <table className="min-w-full border">
-        <thead>
-          <tr className="bg-gray-100">
-            <th className="p-2 border">ID</th>
-            <th className="p-2 border">Tên phòng ban</th>
-            <th className="p-2 border">Thao tác</th>
-          </tr>
-        </thead>
-        <tbody>
-          {departments.map((d) => (
-            <tr key={d.id}>
-              <td className="p-2 border">{d.id}</td>
-              <td className="p-2 border">
-                {editId === d.id ? (
-                  <input
-                    value={editName}
-                    onChange={e => setEditName(e.target.value)}
-                    className="border rounded px-2 py-1"
-                  />
-                ) : (
-                  d.name
-                )}
-              </td>
-              <td className="p-2 border">
-                {editId === d.id ? (
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => handleUpdate(d.id)}
-                      className="bg-green-600 text-white px-2 py-1 rounded"
-                    >
-                      Lưu
-                    </button>
-                    <button
-                      onClick={() => setEditId(null)}
-                      className="bg-gray-300 text-gray-800 px-2 py-1 rounded"
-                    >
-                      Huỷ
-                    </button>
-                  </div>
-                ) : (
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => {
-                        setEditId(d.id);
-                        setEditName(d.name);
-                      }}
-                      disabled={!hasPermission("departments:update")}
-                      className="bg-yellow-400 text-black px-2 py-1 rounded disabled:bg-gray-200"
-                    >
-                      Sửa
-                    </button>
-                    <button
-                      onClick={() => handleDelete(d.id)}
-                      disabled={!hasPermission("departments:delete")}
-                      className="bg-red-600 text-white px-2 py-1 rounded disabled:bg-gray-300"
-                    >
-                      Xoá
-                    </button>
-                  </div>
-                )}
-              </td>
+
+      <Input
+        placeholder="Tìm kiếm..."
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        className="max-w-xs"
+      />
+
+      <div className="rounded-xl shadow bg-gray-800 text-gray-100 overflow-x-auto">
+        <table className="w-full table-auto">
+          <thead>
+            <tr>
+              <th className="p-2">#</th>
+              <th className="p-2">Tên phòng</th>
+              <th className="p-2">Thao tác</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {filtered.map((d, idx) => (
+              <tr key={d.id} className="odd:bg-gray-900 even:bg-gray-800">
+                <td className="p-2 text-center">{idx + 1}</td>
+                <td className="p-2">{d.name}</td>
+                <td className="p-2 flex gap-2">
+                  <Button
+                    size="sm"
+                    onClick={() => setDialog({ open: true, mode: "edit", data: d })}
+                  >
+                    Sửa
+                  </Button>
+                  <Button
+                    size="sm"
+                    className="bg-red-600"
+                    onClick={() => handleDelete(d.id)}
+                  >
+                    Xoá
+                  </Button>
+                </td>
+              </tr>
+            ))}
+
+            {filtered.length === 0 && (
+              <tr>
+                <td colSpan={3} className="text-center py-8 text-gray-400">
+                  Không có phòng ban!
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      <Dialog
+        open={dialog.open}
+        onClose={() => setDialog({ open: false, mode: "create", data: {} })}
+      >
+        <DepartmentForm
+          defaultValues={dialog.data}
+          onSave={handleSave}
+          onClose={() => setDialog({ open: false, mode: "create", data: {} })}
+        />
+      </Dialog>
     </div>
   );
 }

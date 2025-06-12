@@ -1,159 +1,235 @@
-// src/pages/Users.jsx
 import React, { useEffect, useState } from "react";
-import { getUsers, createUser, updateUser, deleteUser } from "../api/userApi";
-import { useUser } from "../UserContext"; // Đảm bảo context đúng path
+import {
+  getUsers,
+  createUser,
+  updateUser,
+  deleteUser,
+} from "@/api/userApi";
+import { getDepartments } from "@/api/departmentApi";
 
-const ROLES = [
-  { value: "admin", label: "Admin" },
-  { value: "lab", label: "Phòng Lab" },
-  { value: "design", label: "Phòng Thiết Kế" },
-  { value: "declare", label: "Khai Báo" },
-  { value: "purchasing", label: "Mua Hàng" },
-  { value: "staff", label: "Nhân Viên" },
-];
-const DEPARTMENTS = [
-  "Lab", "Design", "Khai Báo", "Mua Hàng", "Nhân Viên", "Khác"
-];
+import Button from "@/components/ui/button";
+import Input from "@/components/ui/input";
+import Dialog from "@/components/ui/dialog";
 
-export default function Users() {
-  const { token, user } = useUser();
-  const [users, setUsers] = useState([]);
-  const [form, setForm] = useState({ username: "", password: "", role: "staff", department: "" });
-  const [editingId, setEditingId] = useState(null);
-  const [editData, setEditData] = useState({});
-  const [loading, setLoading] = useState(false);
+/* ----------------------- FORM COMPONENT ----------------------- */
+function UserForm({ defaultValues = {}, departments = [], onSave, onClose }) {
+  const [form, setForm] = useState({
+    username: defaultValues.username || "",
+    password: "",
+    full_name: defaultValues.full_name || "",
+    role: defaultValues.role || "user",
+    phone: defaultValues.phone || "",
+    email: defaultValues.email || "",
+    department_id:
+      defaultValues.department_id ??
+      defaultValues.department?.id ??
+      "",
+  });
 
-  useEffect(() => { fetchUsers(); }, [token]);
+  const handleChange = (e) =>
+    setForm((p) => ({ ...p, [e.target.name]: e.target.value }));
 
-  const fetchUsers = async () => {
-    setLoading(true);
-    try {
-      const data = await getUsers(token);
-      setUsers(data);
-    } catch (e) {
-      setUsers([]);
-      // Có thể báo lỗi nếu muốn
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const payload = {
+      ...form,
+      department_id: form.department_id ? Number(form.department_id) : null,
+    };
+    if (defaultValues.id && payload.password.trim() === "") {
+      delete payload.password; // không đổi pass khi edit
     }
-    setLoading(false);
+    onSave(payload);
   };
 
-  // Xử lý form tạo user
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    await createUser(form, token);
-    setForm({ username: "", password: "", role: "staff", department: "" });
-    fetchUsers();
+  return (
+    <form
+      onSubmit={handleSubmit}
+      className="space-y-3 bg-gray-900 p-6 rounded-xl"
+    >
+      {/* username */}
+      <div>
+        <label className="block text-gray-200">Tên đăng nhập</label>
+        <Input
+          name="username"
+          value={form.username}
+          onChange={handleChange}
+          required
+          disabled={!!defaultValues.id}
+          className="w-full"
+        />
+      </div>
+
+      {/* password */}
+      <div>
+        <label className="block text-gray-200">
+          {defaultValues.id
+            ? "Mật khẩu mới (bỏ trống nếu không đổi)"
+            : "Mật khẩu"}
+        </label>
+        <Input
+          name="password"
+          type="password"
+          minLength={6}
+          value={form.password}
+          onChange={handleChange}
+          required={!defaultValues.id}
+          className="w-full"
+        />
+      </div>
+
+      {/* fullname / role / phone / email */}
+      <div>
+        <label className="block text-gray-200">Họ tên</label>
+        <Input name="full_name" value={form.full_name} onChange={handleChange} className="w-full" />
+      </div>
+
+      <div>
+        <label className="block text-gray-200">Phòng ban</label>
+        <select
+          name="department_id"
+          value={form.department_id}
+          onChange={handleChange}
+          className="w-full p-2 rounded-lg bg-gray-800 text-gray-100"
+        >
+          <option value="">-- Chưa chọn --</option>
+          {departments.map((d) => (
+            <option key={d.id} value={d.id}>
+              {d.name}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div>
+        <label className="block text-gray-200">Chức vụ</label>
+        <select
+          name="role"
+          value={form.role}
+          onChange={handleChange}
+          className="w-full p-2 rounded-lg bg-gray-800 text-gray-100"
+        >
+          <option value="admin">Admin</option>
+          <option value="user">Nhân viên</option>
+        </select>
+      </div>
+
+      <div>
+        <label className="block text-gray-200">SĐT</label>
+        <Input name="phone" value={form.phone} onChange={handleChange} className="w-full" />
+      </div>
+
+      <div>
+        <label className="block text-gray-200">Email</label>
+        <Input name="email" type="email" value={form.email} onChange={handleChange} className="w-full" />
+      </div>
+
+      <div className="flex gap-2 mt-2">
+        <Button type="submit">{defaultValues.id ? "Cập nhật" : "Thêm mới"}</Button>
+        <Button type="button" onClick={onClose} className="bg-gray-700">Huỷ</Button>
+      </div>
+    </form>
+  );
+}
+
+/* ----------------------- MAIN COMPONENT ----------------------- */
+export default function Users() {
+  const [users, setUsers] = useState([]);
+  const [departments, setDepartments] = useState([]);
+  const [query, setQuery] = useState("");
+  const [dialog, setDialog] = useState({ open: false, mode: "create", data: {} });
+  const token = localStorage.getItem("token");
+
+  const fetchData = async () => {
+    try {
+      const [usrRes, depRes] = await Promise.all([
+        getUsers(token),
+        getDepartments(token),
+      ]);
+      setUsers(usrRes.data);
+      setDepartments(depRes.data);
+    } catch (err) {
+      alert("Không thể lấy dữ liệu (token hết hạn?)");
+      setUsers([]); setDepartments([]);
+    }
   };
 
-  // Xử lý form sửa user
-  const handleEditSubmit = async (e) => {
-    e.preventDefault();
-    await updateUser(editingId, editData, token);
-    setEditingId(null);
-    setEditData({});
-    fetchUsers();
+  useEffect(() => { fetchData(); }, []);   /* componentDidMount */
+
+  const filtered = users.filter(
+    (u) =>
+      u.username.toLowerCase().includes(query.toLowerCase()) ||
+      (u.full_name && u.full_name.toLowerCase().includes(query.toLowerCase()))
+  );
+
+  const handleSave = async (data) => {
+    try {
+      if (dialog.mode === "create") await createUser(data, token);
+      else await updateUser(dialog.data.id, data, token);
+
+      setDialog({ open: false, mode: "create", data: {} });
+      fetchData();
+    } catch (err) {
+      alert(err?.response?.data?.detail || "Lỗi lưu user!");
+    }
   };
 
-  // Xóa user
   const handleDelete = async (id) => {
-    if (window.confirm("Bạn chắc chắn muốn xóa user này?")) {
-      await deleteUser(id, token);
-      fetchUsers();
+    if (window.confirm("Xoá user?")) {
+      try { await deleteUser(id, token); fetchData(); }
+      catch { alert("Không xoá được user."); }
     }
   };
 
   return (
-    <div className="p-6 max-w-3xl mx-auto">
-      <h1 className="text-xl font-bold mb-4">Quản lý tài khoản & phân quyền</h1>
-      {/* FORM TẠO USER */}
-      <form className="flex flex-wrap gap-2 mb-8" onSubmit={handleSubmit}>
-        <input
-          className="border p-2 rounded"
-          placeholder="Tên đăng nhập"
-          value={form.username}
-          required
-          onChange={e => setForm({ ...form, username: e.target.value })}
-        />
-        <input
-          className="border p-2 rounded"
-          placeholder="Mật khẩu"
-          type="password"
-          value={form.password}
-          required
-          onChange={e => setForm({ ...form, password: e.target.value })}
-        />
-        <select
-          className="border p-2 rounded"
-          value={form.role}
-          onChange={e => setForm({ ...form, role: e.target.value })}
-        >
-          {ROLES.map(r => (
-            <option key={r.value} value={r.value}>{r.label}</option>
-          ))}
-        </select>
-        <select
-          className="border p-2 rounded"
-          value={form.department}
-          onChange={e => setForm({ ...form, department: e.target.value })}
-        >
-          <option value="">Phòng ban...</option>
-          {DEPARTMENTS.map(d => (
-            <option key={d} value={d}>{d}</option>
-          ))}
-        </select>
-        <button className="bg-blue-500 text-white rounded px-4 py-2" type="submit">
-          Thêm mới
-        </button>
-      </form>
+    <div className="p-6 space-y-4 animate-fade-in bg-gray-900 min-h-screen">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold text-blue-300">Quản lý Nhân sự</h1>
+        <Button onClick={() => setDialog({ open: true, mode: "create", data: {} })}>+ Thêm user</Button>
+      </div>
 
-      {loading ? <div>Đang tải...</div> : (
-        <table className="min-w-full border">
+      <Input placeholder="Tìm kiếm..." value={query} onChange={(e) => setQuery(e.target.value)} className="max-w-xs" />
+
+      <div className="rounded-xl shadow bg-gray-800 text-gray-100 overflow-x-auto">
+        <table className="w-full table-auto">
           <thead>
             <tr>
-              <th className="border p-2">Tên đăng nhập</th>
-              <th className="border p-2">Phòng ban</th>
-              <th className="border p-2">Quyền</th>
-              <th className="border p-2">Hành động</th>
+              <th className="p-2">#</th><th className="p-2">Tên đăng nhập</th>
+              <th className="p-2">Họ tên</th><th className="p-2">Phòng ban</th>
+              <th className="p-2">Chức vụ</th><th className="p-2">SĐT</th>
+              <th className="p-2">Email</th><th className="p-2">Thao tác</th>
             </tr>
           </thead>
           <tbody>
-            {users.map(u =>
-              editingId === u.id ? (
-                <tr key={u.id}>
-                  <td className="border p-2">
-                    <input value={editData.username || ""} onChange={e => setEditData({ ...editData, username: e.target.value })} />
-                  </td>
-                  <td className="border p-2">
-                    <select value={editData.department || ""} onChange={e => setEditData({ ...editData, department: e.target.value })}>
-                      <option value="">Phòng ban...</option>
-                      {DEPARTMENTS.map(d => <option key={d} value={d}>{d}</option>)}
-                    </select>
-                  </td>
-                  <td className="border p-2">
-                    <select value={editData.role || ""} onChange={e => setEditData({ ...editData, role: e.target.value })}>
-                      {ROLES.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
-                    </select>
-                  </td>
-                  <td className="border p-2">
-                    <button onClick={handleEditSubmit} className="bg-green-500 text-white px-2 rounded">Lưu</button>
-                    <button onClick={() => setEditingId(null)} className="ml-2 bg-gray-300 px-2 rounded">Huỷ</button>
-                  </td>
-                </tr>
-              ) : (
-                <tr key={u.id}>
-                  <td className="border p-2">{u.username}</td>
-                  <td className="border p-2">{u.department}</td>
-                  <td className="border p-2">{u.role}</td>
-                  <td className="border p-2">
-                    <button onClick={() => { setEditingId(u.id); setEditData(u); }} className="bg-yellow-500 px-2 rounded text-white">Sửa</button>
-                    <button onClick={() => handleDelete(u.id)} className="ml-2 bg-red-500 text-white px-2 rounded">Xoá</button>
-                  </td>
-                </tr>
-              )
+            {filtered.map((u, idx) => (
+              <tr key={u.id} className="odd:bg-gray-900 even:bg-gray-800">
+                <td className="p-2 text-center">{idx + 1}</td>
+                <td className="p-2">{u.username}</td>
+                <td className="p-2">{u.full_name}</td>
+                <td className="p-2">{u.department?.name || ""}</td>
+                <td className="p-2">{u.role === "admin" ? "Admin" : "Nhân viên"}</td>
+                <td className="p-2">{u.phone}</td>
+                <td className="p-2">{u.email}</td>
+                <td className="p-2 flex gap-2">
+                  <Button size="sm" onClick={() => setDialog({ open: true, mode: "edit", data: u })}>Sửa</Button>
+                  <Button size="sm" className="bg-red-600" onClick={() => handleDelete(u.id)}>Xoá</Button>
+                </td>
+              </tr>
+            ))}
+            {filtered.length === 0 && (
+              <tr><td colSpan={8} className="text-center py-8 text-gray-400">Không có user!</td></tr>
             )}
           </tbody>
         </table>
-      )}
+      </div>
+
+      <Dialog open={dialog.open} onClose={() => setDialog({ open: false, mode: "create", data: {} })}>
+        <UserForm
+          defaultValues={dialog.data}
+          departments={departments}   /* ✨ truyền xuống */
+          onSave={handleSave}
+          onClose={() => setDialog({ open: false, mode: "create", data: {} })}
+        />
+      </Dialog>
     </div>
   );
 }

@@ -1,61 +1,63 @@
-// src/api/userApi.js
+/* src/api/userApi.js
+ * Giao tiếp với USERS-service (port 8000)
+ */
 import axios from "axios";
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8002";
 
-// Hàm tiện ích lấy token: ưu tiên context, fallback localStorage
+// Mặc định lấy URL từ biến môi trường, fallback localhost:8000 khi chạy dev
+const API_URL = import.meta.env.VITE_USERS_API;   // <-- đã tách riêng
+
+/** Lấy access token đã lưu (nếu có) */
 function getToken(token) {
   return token || localStorage.getItem("token");
 }
 
-// Lấy tất cả user (phải có token, thường chỉ admin mới được quyền này)
-export async function getUsers(token) {
-  const realToken = getToken(token);
-  const res = await axios.get(`${API_URL}/users`, {
-    headers: {
-      Authorization: `Bearer ${realToken}`
-    }
-  });
-  return res.data;
-}
+/* ---------- ENDPOINTS ---------- */
 
-// Tạo user mới
-export async function createUser(data, token) {
-  const realToken = getToken(token);
-  return axios.post(`${API_URL}/users`, data, {
-    headers: { Authorization: `Bearer ${realToken}` }
+/** Đăng nhập – nhận { access_token, token_type, role, ... } */
+export async function loginUser({ username, password }) {
+  const form = new URLSearchParams();
+  form.append("username", username);
+  form.append("password", password);
+
+  return axios.post(`${API_URL}/login`, form, {
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
   });
 }
 
-// Sửa user
-export async function updateUser(id, data, token) {
-  const realToken = getToken(token);
-  return axios.put(`${API_URL}/users/${id}`, data, {
-    headers: { Authorization: `Bearer ${realToken}` }
-  });
-}
-
-// Xóa user
-export async function deleteUser(id, token) {
-  const realToken = getToken(token);
-  return axios.delete(`${API_URL}/users/${id}`, {
-    headers: { Authorization: `Bearer ${realToken}` }
-  });
-}
-
-// Lấy thông tin user hiện tại (khi đã login)
+/** Lấy hồ sơ người dùng hiện tại */
 export async function getCurrentUser(token) {
   const realToken = getToken(token);
   return axios.get(`${API_URL}/users/me`, {
-    headers: { Authorization: `Bearer ${realToken}` }
+    headers: { Authorization: `Bearer ${realToken}` },
   });
 }
 
-// Đăng nhập, nhận về access_token
-export async function loginUser({ username, password }) {
-  const params = new URLSearchParams();
-  params.append("username", username);
-  params.append("password", password);
-  return axios.post(`${API_URL}/login`, params, {
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+/* ------ Các thao tác CRUD user (chỉ admin) ------ */
+
+export async function getUsers(token) {
+  const realToken = getToken(token);
+  return axios.get(`${API_URL}/users`, {
+    headers: { Authorization: `Bearer ${realToken}` },
+  });
+}
+
+export async function createUser(data, token) {
+  const realToken = getToken(token);
+  return axios.post(`${API_URL}/users`, data, {
+    headers: { Authorization: `Bearer ${realToken}` },
+  });
+}
+
+export async function updateUser(id, data, token) {
+  const realToken = getToken(token);
+  return axios.put(`${API_URL}/users/${id}`, data, {
+    headers: { Authorization: `Bearer ${realToken}` },
+  });
+}
+
+export async function deleteUser(id, token) {
+  const realToken = getToken(token);
+  return axios.delete(`${API_URL}/users/${id}`, {
+    headers: { Authorization: `Bearer ${realToken}` },
   });
 }

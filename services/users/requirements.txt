@@ -7,4 +7,5 @@ passlib[bcrypt]
 python-jose
 python-dotenv
 psycopg2-binary
-
+alembic
+PyJWT==2.8.0

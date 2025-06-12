@@ -1,20 +1,22 @@
-import axios from "axios";
+// src/api/departmentApi.js
+import axios from "../api/axios";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+export const createDepartment = (data, token) =>
+  axios.post("/departments", data, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
 
-export async function getDepartments() {
-  const res = await axios.get(`${API_URL}/departments`);
-  return res.data;
-}
+export const getDepartments = (token) =>
+  axios.get("/departments", {
+    headers: { Authorization: `Bearer ${token}` },
+  });
 
-export async function createDepartment(data) {
-  return axios.post(`${API_URL}/departments`, data);
-}
+export const updateDepartment = (id, data, token) =>
+  axios.put(`/departments/${id}`, data, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
 
-export async function updateDepartment(id, data) {
-  return axios.put(`${API_URL}/departments/${id}`, data);
-}
-
-export async function deleteDepartment(id) {
-  return axios.delete(`${API_URL}/departments/${id}`);
-}
+export const deleteDepartment = (id, token) =>
+  axios.delete(`/departments/${id}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });

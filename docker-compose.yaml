@@ -1,90 +1,94 @@
+version: "3.9"
+
+volumes:
+  postgres_data:
+
+networks:
+  backend:        # mạng nội bộ cho các container
+    driver: bridge
+
 services:
+  # ────────────────── Database & Cache ──────────────────
   postgres:
     image: postgres:16
     container_name: nhacnho-postgres
     restart: unless-stopped
     environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=nhacnho
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: nhacnho
     ports:
-      - "5432:5432"
+      - "5432:5432"          # ◀︎ mở cổng cho công cụ desktop
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks: [backend]
 
   redis:
     image: redis:7
     container_name: nhacnho-redis
+    restart: unless-stopped
     ports:
       - "6379:6379"
-    restart: unless-stopped
+    networks: [backend]
 
+  # ────────────────── Backend services ──────────────────
   users_service:
-    build:
-      context: ./services/users
+    build: ./services/users
     container_name: nhacnho-users_service
-    env_file:
-      - .env
+    env_file: .env
+    depends_on: [postgres]
     ports:
       - "8000:8000"
-    depends_on:
-      - postgres
     restart: unless-stopped
+    networks: [backend]
 
   orders_service:
-    build:
-      context: ./services/orders
+    build: ./services/orders
     container_name: nhacnho-orders_service
-    env_file:
-      - .env
-    depends_on:
-      - postgres
+    env_file: .env
+    depends_on: [postgres]
+    ports:
+      - "8001:8000"
     restart: unless-stopped
+    networks: [backend]
 
   notification_service:
-    build:
-      context: ./services/notification
+    build: ./services/notification
     container_name: nhacnho-notification_service
-    env_file:
-      - .env
+    env_file: .env
     depends_on:
       - postgres
-    restart: unless-stopped
-
-  lab_service:
-    build:
-      context: ./services/lab
-    container_name: nhacnho-lab_service
-    env_file:
-      - .env
-    depends_on:
-      - postgres
-    restart: unless-stopped
-
-  scheduler_service:
-    build:
-      context: ./services/scheduler
-    container_name: nhacnho-scheduler_service
-    env_file:
-      - .env
-    depends_on:
       - redis
     restart: unless-stopped
+    networks: [backend]
 
+  lab_service:
+    build: ./services/lab
+    container_name: nhacnho-lab_service
+    env_file: .env
+    depends_on: [postgres]
+    restart: unless-stopped
+    networks: [backend]
+
+  scheduler_service:
+    build: ./services/scheduler
+    container_name: nhacnho-scheduler_service
+    env_file: .env
+    depends_on: [redis]
+    restart: unless-stopped
+    networks: [backend]
+
+  # ────────────────── Front-end SPA (Nginx) ──────────────────
   frontend:
-    build:
-      context: ./services/frontend
+    build: ./services/frontend         # multi-stage: vite ⇒ nginx
     container_name: nhacnho-frontend
-    env_file:
-      - .env
+    env_file: .env
     ports:
-      - "3000:80"
+      - "3000:80"                      # http://localhost:3000
     depends_on:
       - users_service
       - orders_service
       - notification_service
       - lab_service
     restart: unless-stopped
-
-volumes:
-  postgres_data:
+    networks: [backend]
